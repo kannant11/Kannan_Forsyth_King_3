@@ -1,5 +1,7 @@
 <script>
     import * as THREE from 'three';
+
+    var scene;
     
     function randomVal(array) {
         return array(Math.floor(Math.random() * arr.length));
@@ -18,4 +20,29 @@
         height: 20,
         width: 10
     };
+
+    var camera = createCamera();
+
+    function createCamera() {
+        const webcamAccess = navigator.mediaDevices.getUserMedia({video: true});
+        const vidElement = document.getElementById('video');
+        webcamAccess = vidElement.srcObject;
+
+        switch(GamepadButton) {
+            case 'w':
+                window.scroll(0, window.scrollY + 2);
+                break;
+            case 's':
+                window.scroll(0, window.scrollY - 2);
+                break;
+            case 'a':
+                window.scroll(window.scrollY + 2, 0)
+                break;
+            case 'd':
+                window.scroll(window.scrollY - 2, 0)
+                break;
+        }
+    }
+
+    scene.add(camera);
 </script>
