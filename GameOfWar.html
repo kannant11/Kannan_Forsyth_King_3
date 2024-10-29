@@ -1,0 +1,21 @@
+<script>
+    import * as THREE from 'three';
+    
+    function randomVal(array) {
+        return array(Math.floor(Math.random() * arr.length));
+    }
+
+    var value = ['Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King']
+    var frontTexture = ['smooth', 'rough', 'bumpy', 'prickly', 'glossy', 'scaly'];
+    var backTexture;
+    var suit = ['Club', 'Spade', 'Heart', 'Diamond'];
+
+    var card = {
+        cardValue: Math.random(),
+        cardSuit: randomVal(),
+        cardFrontTexture: randomVal(),
+        cardBackTexture: backTexture,
+        height: 20,
+        width: 10
+    };
+</script>
