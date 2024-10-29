@@ -21,6 +21,8 @@
         width: 10
     };
 
+    scene.add(card);
+
     var camera = createCamera();
 
     function createCamera() {
@@ -45,4 +47,14 @@
     }
 
     scene.add(camera);
+
+    addEventListener('keypressed', function(e) {
+        if(e.key == 'N'||e.key == 'n') {
+            gameStart();
+        }
+    });
+
+    function gameStart() {
+        const startGame = getElementById('game');
+    }
 </script>
