@@ -20,7 +20,8 @@
         document.body.appendChild(renderer.domElement);
 
         // Set camera position
-        camera.position.set(0, 0, 5);
+        camera.position.set(0,50,80);
+        camera.lookAt(0,0,0);
 
         // Initialize OrbitControls
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -45,9 +46,17 @@
 
         
         var cardGeom = new THREE.PlaneGeometry(card.width, card.height);
-        var cardMat = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+        var cardMat = new THREE.MeshPhongMaterial({color: 0x00ff00});
         var cardMesh = new THREE.Mesh(cardGeom, cardMat);
-        scene.add(cardMesh); 
+        //scene.add(cardMesh); 
+
+        
+        var tableGeom = new THREE.PlaneGeometry(100,100);
+        tableGeom.rotateX(-1.5);
+        var tableMat = new THREE.MeshPhongMaterial({color: 0xff0000});
+        var table = new THREE.Mesh(tableGeom, tableMat);
+        scene.add(table);
+
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
