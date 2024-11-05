@@ -50,10 +50,10 @@
         var cardMesh = new THREE.Mesh(cardGeom, cardMat);
         //scene.add(cardMesh); 
 
-        
+        const tableTexture = new THREE.TextureLoader().load('textures\\tabletop.jpg');
         var tableGeom = new THREE.PlaneGeometry(100,100);
         tableGeom.rotateX(-1.5);
-        var tableMat = new THREE.MeshPhongMaterial({color: 0xff0000});
+        var tableMat = new THREE.MeshPhongMaterial({map: tableTexture});
         var table = new THREE.Mesh(tableGeom, tableMat);
         scene.add(table);
 
