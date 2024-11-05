@@ -31,8 +31,13 @@
             return array[Math.floor(Math.random() * array.length)];
         }
 
+        const tableTexture = new THREE.TextureLoader().load('textures\\tabletop.jpg');
+        const backTexture = new THREE.TextureLoader().load('textures\\back.png');
+        
+
+
         // Card properties
-        var value = ['Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King'];
+        var value = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
         var frontTexture = ['smooth', 'rough', 'bumpy', 'prickly', 'glossy', 'scaly'];
         var suit = ['Club', 'Spade', 'Heart', 'Diamond'];
 
@@ -50,15 +55,14 @@
         var cardMesh = new THREE.Mesh(cardGeom, cardMat);
         //scene.add(cardMesh); 
 
-        const tableTexture = new THREE.TextureLoader().load('textures\\tabletop.jpg');
         var tableGeom = new THREE.PlaneGeometry(100,100);
-        tableGeom.rotateX(-1.5);
         var tableMat = new THREE.MeshPhongMaterial({map: tableTexture});
         var table = new THREE.Mesh(tableGeom, tableMat);
+        table.rotation.x = -Math.PI / 2;
         scene.add(table);
 
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         scene.add(ambientLight);
 
         function animate() {
