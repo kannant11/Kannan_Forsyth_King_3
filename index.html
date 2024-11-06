@@ -21,7 +21,6 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
 
-        // Load table and back textures
         const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
         const backTexture = new THREE.TextureLoader().load('textures/back.png');
 
@@ -79,7 +78,6 @@
             }
         }
 
-        
         const deck = [];
         for (let suit of suits) {
             for (let value of values) {
@@ -97,7 +95,7 @@
         function shuffleDeck(deck) {
             for (let i = deck.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [deck[i], deck[j]] = [deck[j], deck[i]]; // Swap elements
+                [deck[i], deck[j]] = [deck[j], deck[i]]; 
             }
         }
 
@@ -122,8 +120,6 @@
         createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);   
 
       
-
-      
         const tableGeom = new THREE.BoxGeometry(125, 125, 2);
         const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
         const table = new THREE.Mesh(tableGeom, tableMat);
@@ -132,8 +128,44 @@
         scene.add(table);
 
         
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
         scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xd05a1a, 6000, 100);
+        pointLight.position.set(0,45,-20);
+        scene.add(pointLight);
+
+        const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
+        scene.add( pointLightHelper);
+
+        let moveSpeed = 2;
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'l') {
+                ambientLight.visible = !ambientLight.visible
+            }
+            if (event.key === 'p') {
+                pointLight.visible = !pointLight.visible;
+            }
+            if (event.key === 'w') {
+                pointLight.position.z -= moveSpeed; 
+            }
+            if (event.key === 's') {
+                pointLight.position.z += moveSpeed; 
+            }
+            if (event.key === 'a') {
+                pointLight.position.x -= moveSpeed; 
+            }
+            if (event.key === 'd') {
+                pointLight.position.x += moveSpeed; 
+            }
+            if (event.key === 'q') {
+                pointLight.position.y += moveSpeed; 
+            }
+            if (event.key === 'e') {
+                pointLight.position.y -= moveSpeed; 
+            }
+        });
 
         function animate() {
             requestAnimationFrame(animate);
