@@ -12,54 +12,61 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-        // Create scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('myCanvas') });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Set camera position
-        camera.position.set(0,50,80);
+        camera.position.set(0,75,50);
         camera.lookAt(0,0,0);
 
-        // Initialize OrbitControls
         const controls = new OrbitControls(camera, renderer.domElement);
 
-        // Random value function
         function randomVal(array) {
             return array[Math.floor(Math.random() * array.length)];
         }
 
         const tableTexture = new THREE.TextureLoader().load('textures\\tabletop.jpg');
         const backTexture = new THREE.TextureLoader().load('textures\\back.png');
+
+        class Card {
+            constructor(value,suit,frontTexture){
+                this.value = value;
+                this.suit = suit;
+                this.frontTexture = frontTexture;
+
+                this.width = 5;
+                this.height = 10;
+                this.depth = 0.2;
+
+                this.cardGeom = new THREE.BoxGeometry(this.width, this.height, this.depth);
+                this.frontMat = new THREE.MeshPhongMaterial({map: new THREE.TextureLoader().load(frontTexture)});
+                this.backMat = new THREE.MeshBasicMaterial({map: backTexture});
+
+                this.cardMesh = new THREE.Group();
+
+                const front = new THREE.Mesh(this.cardGeom, this.frontMat);
+                front.position.set(0, 0, this.depth / 2);
+
+                const back = new THREE.Mesh(this.cardGeom, this.backMat);
+                back.position.set(0, 0, -this.depth / 2);
+
+                cardMesh.add(front);
+                cardMesh.add(back);
+            }
+            position(x, y, z) {
+                this.cardMesh.position.set(x, y, z);
+            }
+        }
         
 
-
-        // Card properties
-        var value = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-        var frontTexture = ['smooth', 'rough', 'bumpy', 'prickly', 'glossy', 'scaly'];
-        var suit = ['Club', 'Spade', 'Heart', 'Diamond'];
-
-        var card = {
-            cardValue: randomVal(value),
-            cardSuit: randomVal(suit),
-            cardFrontTexture: randomVal(frontTexture),
-            height: 20,
-            width: 10
-        };
-
-        
-        var cardGeom = new THREE.PlaneGeometry(card.width, card.height);
-        var cardMat = new THREE.MeshPhongMaterial({color: 0x00ff00});
-        var cardMesh = new THREE.Mesh(cardGeom, cardMat);
-        //scene.add(cardMesh); 
-
-        var tableGeom = new THREE.PlaneGeometry(100,100);
+        var tableGeom = new THREE.BoxGeometry(125,125,2);
         var tableMat = new THREE.MeshPhongMaterial({map: tableTexture});
         var table = new THREE.Mesh(tableGeom, tableMat);
         table.rotation.x = -Math.PI / 2;
         scene.add(table);
+        table.position.set(0,0,-20);
 
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
