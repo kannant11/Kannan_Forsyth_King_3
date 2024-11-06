@@ -14,6 +14,7 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('myCanvas') });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;  
         document.body.appendChild(renderer.domElement);
 
         camera.position.set(0, 75, 50);
@@ -61,9 +62,13 @@
 
                 const front = new THREE.Mesh(this.cardGeom, this.frontMat);
                 front.position.set(0, 0, this.depth / 2);
+                front.castShadow = true;
+                front.receiveShadow = true;
 
                 const back = new THREE.Mesh(this.cardGeom, this.backMat);
                 back.position.set(0, 0, -this.depth / 2);
+                back.castShadow = true;
+                back.receiveShadow = true;
 
                 this.cardMesh.add(front);
                 this.cardMesh.add(back);
@@ -111,7 +116,7 @@
                 card.position(xOffset, currentYOffset, zOffset);
                 card.cardMesh.rotation.z = zRotation;
                 scene.add(card.cardMesh);
-                currentYOffset += 0.2; 
+                currentYOffset += 2; 
             });
         }
 
@@ -119,30 +124,33 @@
         createPlayerDeck(player2Deck, 0, 1, 30, 0);    
         createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);   
 
-      
         const tableGeom = new THREE.BoxGeometry(125, 125, 2);
         const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
         const table = new THREE.Mesh(tableGeom, tableMat);
         table.rotation.x = -Math.PI / 2; 
         table.position.set(0, 0, -20); 
+        table.castShadow = true;  
+        table.receiveShadow = true;
         scene.add(table);
 
-        
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
         scene.add(ambientLight);
 
         const pointLight = new THREE.PointLight(0xd05a1a, 6000, 100);
-        pointLight.position.set(0,45,-20);
+        pointLight.position.set(0, 45, -20);
+        pointLight.castShadow = true;
         scene.add(pointLight);
 
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
         scene.add( pointLightHelper);
+        pointLightHelper.visible = false;
 
         let moveSpeed = 2;
+        let shadowsEnabled = true;  
 
         window.addEventListener('keydown', (event) => {
             if (event.key === 'l') {
-                ambientLight.visible = !ambientLight.visible
+                ambientLight.visible = !ambientLight.visible;
             }
             if (event.key === 'p') {
                 pointLight.visible = !pointLight.visible;
@@ -164,6 +172,22 @@
             }
             if (event.key === 'e') {
                 pointLight.position.y -= moveSpeed; 
+            }
+            if (event.key === 'm') {
+                shadowsEnabled = !shadowsEnabled;
+
+                renderer.shadowMap.enabled = shadowsEnabled;
+                pointLight.castShadow = shadowsEnabled;  
+
+                scene.traverse(child => {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = shadowsEnabled;
+                        child.receiveShadow = shadowsEnabled;
+                    }
+                });
+            }
+            if (event.key === 'u') {
+                pointLightHelper.visible = !pointLightHelper.visible; 
             }
         });
 
