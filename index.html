@@ -105,11 +105,11 @@
         const player2Deck = deck.slice(deck.length / 3, (2 * deck.length) / 3);
         const player3Deck = deck.slice((2 * deck.length) / 3);
 
-        function createPlayerDeck(deck, xOffset, yOffset, zOffset, yRotation) {
+        function createPlayerDeck(deck, xOffset, yOffset, zOffset, zRotation) {
             let currentYOffset = yOffset;
             deck.forEach((card, index) => {
                 card.position(xOffset, currentYOffset, zOffset);
-                card.cardMesh.rotation.z = yRotation;
+                card.cardMesh.rotation.z = zRotation;
                 scene.add(card.cardMesh);
                 currentYOffset += 0.2; 
             });
