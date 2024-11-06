@@ -18,31 +18,38 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        camera.position.set(0,75,50);
-        camera.lookAt(0,0,0);
+        camera.position.set(0, 75, 50);
+        camera.lookAt(0, 0, 0);
 
         const controls = new OrbitControls(camera, renderer.domElement);
 
-        function randomVal(array) {
-            return array[Math.floor(Math.random() * array.length)];
-        }
+        const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
+        const backTexture = new THREE.TextureLoader().load('textures/back.png');
 
-        const tableTexture = new THREE.TextureLoader().load('textures\\tabletop.jpg');
-        const backTexture = new THREE.TextureLoader().load('textures\\back.png');
+        const values = ['ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'jack', 'queen', 'king'];
+        const suits = ['spades', 'clubs', 'hearts', 'diamonds'];
+
+        const cardTextures = {};
+        values.forEach(value => {
+            suits.forEach(suit => {
+                const textureKey = `${value}_of_${suit}`;
+                cardTextures[textureKey] = `textures/PNG-cards-1.3/${textureKey.toLowerCase()}.png`;
+            });
+        });
 
         class Card {
-            constructor(value,suit,frontTexture){
+            constructor(value, suit, frontTexture) {
                 this.value = value;
                 this.suit = suit;
                 this.frontTexture = frontTexture;
 
                 this.width = 5;
                 this.height = 10;
-                this.depth = 0.2;
+                this.depth = 0.05;
 
                 this.cardGeom = new THREE.BoxGeometry(this.width, this.height, this.depth);
-                this.frontMat = new THREE.MeshPhongMaterial({map: new THREE.TextureLoader().load(frontTexture)});
-                this.backMat = new THREE.MeshBasicMaterial({map: backTexture});
+                this.frontMat = new THREE.MeshPhongMaterial({ map: new THREE.TextureLoader().load(frontTexture) });
+                this.backMat = new THREE.MeshBasicMaterial({ map: backTexture });
 
                 this.cardMesh = new THREE.Group();
 
@@ -52,22 +59,45 @@
                 const back = new THREE.Mesh(this.cardGeom, this.backMat);
                 back.position.set(0, 0, -this.depth / 2);
 
-                cardMesh.add(front);
-                cardMesh.add(back);
+                this.cardMesh.add(front);
+                this.cardMesh.add(back);
+                
+                this.cardMesh.rotation.x = Math.PI / 2;  
+                this.cardMesh.rotation.y = 0;
+                this.cardMesh.rotation.z = 0;
             }
+
             position(x, y, z) {
                 this.cardMesh.position.set(x, y, z);
             }
         }
-        
 
-        var tableGeom = new THREE.BoxGeometry(125,125,2);
-        var tableMat = new THREE.MeshPhongMaterial({map: tableTexture});
-        var table = new THREE.Mesh(tableGeom, tableMat);
-        table.rotation.x = -Math.PI / 2;
+        const deck = [];
+        let xOffset = 0;  
+        let yOffset = 1;  
+        let zOffset = -20;  
+
+        for (let suit of suits) {
+            for (let value of values) {
+                const textureKey = `${value}_of_${suit}`;
+                const frontTexture = cardTextures[textureKey];
+
+                if (frontTexture) {
+                    const card = new Card(value, suit, frontTexture);
+                    card.position(xOffset, yOffset, zOffset);
+                    scene.add(card.cardMesh);
+
+                    yOffset += 0.1; 
+                }
+            }
+        }
+
+        const tableGeom = new THREE.BoxGeometry(125, 125, 2);
+        const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
+        const table = new THREE.Mesh(tableGeom, tableMat);
+        table.rotation.x = -Math.PI / 2; 
+        table.position.set(0, 0, -20); 
         scene.add(table);
-        table.position.set(0,0,-20);
-
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         scene.add(ambientLight);
