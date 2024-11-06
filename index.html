@@ -56,7 +56,7 @@
 
                 this.cardGeom = new THREE.BoxGeometry(this.width, this.height, this.depth);
                 this.frontMat = new THREE.MeshPhongMaterial({ map: new THREE.TextureLoader().load(frontTexture) });
-                this.backMat = new THREE.MeshBasicMaterial({ map: backTexture });
+                this.backMat = new THREE.MeshPhongMaterial({ map: backTexture });
 
                 this.cardMesh = new THREE.Group();
 
@@ -68,8 +68,8 @@
 
                 this.cardMesh.add(front);
                 this.cardMesh.add(back);
-                
-                this.cardMesh.rotation.x = -Math.PI / 2;  
+
+                this.cardMesh.rotation.x = Math.PI / 2;  
                 this.cardMesh.rotation.y = 0;
                 this.cardMesh.rotation.z = 0;
             }
@@ -79,37 +79,51 @@
             }
         }
 
+        
         const deck = [];
-        let xOffset = 0;  
-        let yOffset = 1;  
-        let zOffset = -20;  
-
         for (let suit of suits) {
             for (let value of values) {
-                
                 const textureKey = `${value}_of_${suit}`;
                 const frontTexture = cardTextures[textureKey];
-
                 if (frontTexture) {
-                    const card = new Card(value, suit, frontTexture);
-                    card.position(xOffset, yOffset, zOffset);
-                    scene.add(card.cardMesh);
-
-                    yOffset += 2;  
+                    deck.push(new Card(value, suit, frontTexture));
                 }
             }
         }
 
-        const blackJoker = new Card('black_joker', null, cardTextures['black_joker']);
-        blackJoker.position(xOffset, yOffset, zOffset);
-        scene.add(blackJoker.cardMesh);
-        yOffset += 2; 
+        deck.push(new Card('black_joker', null, cardTextures['black_joker']));
+        deck.push(new Card('red_joker', null, cardTextures['red_joker']));
 
-        const redJoker = new Card('red_joker', null, cardTextures['red_joker']);
-        redJoker.position(xOffset, yOffset, zOffset);
-        scene.add(redJoker.cardMesh);
-        yOffset += 2;
+        function shuffleDeck(deck) {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]]; // Swap elements
+            }
+        }
 
+        shuffleDeck(deck);
+
+        const player1Deck = deck.slice(0, deck.length / 3);
+        const player2Deck = deck.slice(deck.length / 3, (2 * deck.length) / 3);
+        const player3Deck = deck.slice((2 * deck.length) / 3);
+
+        function createPlayerDeck(deck, xOffset, yOffset, zOffset, yRotation) {
+            let currentYOffset = yOffset;
+            deck.forEach((card, index) => {
+                card.position(xOffset, currentYOffset, zOffset);
+                card.cardMesh.rotation.z = yRotation;
+                scene.add(card.cardMesh);
+                currentYOffset += 0.2; 
+            });
+        }
+
+        createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  
+        createPlayerDeck(player2Deck, 0, 1, 30, 0);    
+        createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);   
+
+      
+
+      
         const tableGeom = new THREE.BoxGeometry(125, 125, 2);
         const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
         const table = new THREE.Mesh(tableGeom, tableMat);
@@ -117,6 +131,7 @@
         table.position.set(0, 0, -20); 
         scene.add(table);
 
+        
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         scene.add(ambientLight);
 
