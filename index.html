@@ -21,6 +21,7 @@
         camera.lookAt(0, 0, 0);
 
         const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enabled = false;
 
         const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
         const backTexture = new THREE.TextureLoader().load('textures/back.png');
@@ -202,6 +203,9 @@
             }
             if (event.key === 'u') {
                 pointLightHelper.visible = !pointLightHelper.visible; 
+            }
+            if (event.key === 'o') {
+                controls.enabled = !controls.enabled;
             }
         });
 
