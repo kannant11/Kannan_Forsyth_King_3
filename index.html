@@ -205,6 +205,29 @@
             }
         });
 
+        selectedObject = null;
+        positionX;
+        positionY;
+        isDraggin = false;
+
+        document.addEventListener('mousedown', function(event) {
+            isDraggin = true;
+            positionX = event.clientX - selectedObject.xOffset;
+            positionY = event.clientY - selectedObject.yOffset;
+        });
+
+        document.addEventListener('mousemove', function(event) {
+            if(isDraggin = true) {
+                selectedObject.style.left = event.clientX - positionX;
+                selectedObject.style.top = event.clientY - positionY;
+            }
+        });
+
+        document.addEventListener('mouseup', function(event) {
+            isDraggin = fale;
+            selectedObject = null;
+        });
+
         function animate() {
             requestAnimationFrame(animate);
             controls.update(); 
