@@ -150,7 +150,15 @@
 
         window.addEventListener('keydown', (event) => {
             if (event.key === 'n') {
-                scene.add(deck);
+                scene.remove(player1Deck);
+                scene.remove(player2Deck);
+                scene.remove(player3Deck);
+                createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  
+                createPlayerDeck(player2Deck, 0, 1, 30, 0);    
+                createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);
+                shuffleDeck(player1Deck);
+                shuffleDeck(player2Deck);
+                shuffleDeck(player3Deck);
             }
             if (event.key === 'l') {
                 ambientLight.visible = !ambientLight.visible;
