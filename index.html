@@ -159,6 +159,9 @@
                 shuffleDeck(player1Deck);
                 shuffleDeck(player2Deck);
                 shuffleDeck(player3Deck);
+                scene.add(player1Deck);
+                scene.add(player2Deck);
+                scene.add(player3Deck);
             }
             if (event.key === 'l') {
                 ambientLight.visible = !ambientLight.visible;
