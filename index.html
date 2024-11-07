@@ -149,6 +149,9 @@
         let shadowsEnabled = true;  
 
         window.addEventListener('keydown', (event) => {
+            if (event.key === 'n') {
+                scene.add(deck);
+            }
             if (event.key === 'l') {
                 ambientLight.visible = !ambientLight.visible;
             }
