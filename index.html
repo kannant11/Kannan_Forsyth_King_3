@@ -169,67 +169,46 @@
             return valuesOrder[card.value] || card.value;
         }
 
-function determineRoundWinner() {
-    const player1Value = getCardValue(player1CurrentCard);
-    const player2Value = getCardValue(player2CurrentCard);
-    const player3Value = getCardValue(player3CurrentCard);
+        function determineRoundWinner() {
+            const player1Value = getCardValue(player1CurrentCard);
+            const player2Value = getCardValue(player2CurrentCard);
+            const player3Value = getCardValue(player3CurrentCard);
 
-    let winnerDeck;
+            let winnerDeck;
 
-    if (player1Value > player2Value && player1Value > player3Value) {
-        winnerDeck = player1Deck;
-        console.log("Player 1 wins the round!");
-    } else if (player2Value > player1Value && player2Value > player3Value) {
-        winnerDeck = player2Deck;
-        console.log("Player 2 wins the round!");
-    } else if (player3Value > player1Value && player3Value > player2Value) {
-        winnerDeck = player3Deck;
-        console.log("Player 3 wins the round!");
-    } else {
-        // tie logic should be implemented
-        console.log("It's a tie!"); // placeholder
-        return;
-    }
+            if (player1Value > player2Value && player1Value > player3Value) {
+                winnerDeck = player1Deck;
+                console.log("Player 1 wins the round!");
+            } else if (player2Value > player1Value && player2Value > player3Value) {
+                winnerDeck = player2Deck;
+                console.log("Player 2 wins the round!");
+            } else if (player3Value > player1Value && player3Value > player2Value) {
+                winnerDeck = player3Deck;
+                console.log("Player 3 wins the round!");
+            } else {
+                // tie logic should be implemented
+                console.log("It's a tie!"); // placeholder
+                return;
+            }
 
-    // adds the drawn cards back to the winner's deck
-    winnerDeck.push(player1CurrentCard, player2CurrentCard, player3CurrentCard);
-}
+            // adds the drawn cards back to the winner's deck
+            winnerDeck.push(player1CurrentCard, player2CurrentCard, player3CurrentCard);
+        }
 
-// main function to play one round
-function playRound() {
-    placeCardsInCenter();
-    determineRoundWinner();
+        // main function to play one round
+        function playRound() {
+            placeCardsInCenter();
+            determineRoundWinner();
 
-    // remove the cards from the center after the round
-    setTimeout(() => {
-        scene.remove(player1CurrentCard.cardMesh);
-        scene.remove(player2CurrentCard.cardMesh);
-        scene.remove(player3CurrentCard.cardMesh);
+            // remove the cards from the center after the round
+            setTimeout(() => {
+                scene.remove(player1CurrentCard.cardMesh);
+                scene.remove(player2CurrentCard.cardMesh);
+                scene.remove(player3CurrentCard.cardMesh);
 
-    }, 2000);  // Delay to visualize the cards in the center before removing
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            }, 2000);  // Delay to visualize the cards in the center before removing
+        }
+        
         shuffleDeck(deck);
 
         const player1Deck = deck.slice(0, deck.length / 3);
