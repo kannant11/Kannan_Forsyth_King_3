@@ -209,10 +209,10 @@
             }
         });
 
-        selectedObject = null;
-        positionX;
-        positionY;
-        isDraggin = false;
+        let selectedObject = null;
+        var positionX;
+        var positionY;
+        let isDraggin = false;
 
         document.addEventListener('mousedown', function(event) {
             isDraggin = true;
@@ -228,7 +228,7 @@
         });
 
         document.addEventListener('mouseup', function(event) {
-            isDraggin = fale;
+            isDraggin = false;
             selectedObject = null;
         });
 
