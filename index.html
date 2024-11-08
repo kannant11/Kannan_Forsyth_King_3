@@ -26,7 +26,28 @@
         const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
         const backTexture = new THREE.TextureLoader().load('textures/back.png');
 
-        const values = ['ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'jack', 'queen', 'king'];
+        // puts values as strings, easy for iteration
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king','ace'];
+
+
+        // assigns values to string counterparts, easy for comparing
+        // cardRankings[card.value] will return the corresponding number
+        const cardRankings = {
+            '2': 2,
+            '3': 3,
+            '4': 4,
+            '5': 5,
+            '6': 6,
+            '7': 7,
+            '8': 8,
+            '9': 9,
+            '10': 10,
+            'jack': 11,
+            'queen': 12,
+            'king': 13,
+            'ace': 14
+        };
+
         const suits = ['spades', 'clubs', 'hearts', 'diamonds'];
 
         const jokerTextures = {
@@ -44,6 +65,19 @@
 
         cardTextures['red_joker'] = jokerTextures.red_joker;
         cardTextures['black_joker'] = jokerTextures.black_joker;
+
+        // variables to track the top card for each player
+        let player1CurrentCard, player2CurrentCard, player3CurrentCard;
+
+
+        // central play area position
+        const centerPositions = [
+        { x: -15, y: 1, z: 0 },  // p1 card display position
+        { x: 0, y: 1, z: 0 },    // p2 card display position
+        { x: 15, y: 1, z: 0 }    // p3 card display position
+        ];
+        
+
 
         class Card {
             constructor(value, suit, frontTexture) {
@@ -105,11 +139,104 @@
             }
         }
 
+        // function to draw the top card of each player's deck
+        function drawTopCard(deck) {
+            return deck.shift();  // Removes and returns the top card from the player's deck
+        }
+
+
+        // function to place cards in the center play area
+        function placeCardsInCenter() {
+            // Draw top cards
+            player1CurrentCard = drawTopCard(player1Deck);
+            player2CurrentCard = drawTopCard(player2Deck);
+            player3CurrentCard = drawTopCard(player3Deck);
+
+            // Place each player's drawn card at the center positions
+            player1CurrentCard.position(centerPositions[0].x, centerPositions[0].y, centerPositions[0].z);
+            scene.add(player1CurrentCard.cardMesh);
+    
+            player2CurrentCard.position(centerPositions[1].x, centerPositions[1].y, centerPositions[1].z);
+            scene.add(player2CurrentCard.cardMesh);
+    
+            player3CurrentCard.position(centerPositions[2].x, centerPositions[2].y, centerPositions[2].z);
+            scene.add(player3CurrentCard.cardMesh);
+        }
+
+        // Function to compare card values and determine the round winner
+        function getCardValue(card) {
+            const valuesOrder = { ace: 14, king: 13, queen: 12, jack: 11 };
+            return valuesOrder[card.value] || card.value;
+        }
+
+function determineRoundWinner() {
+    const player1Value = getCardValue(player1CurrentCard);
+    const player2Value = getCardValue(player2CurrentCard);
+    const player3Value = getCardValue(player3CurrentCard);
+
+    let winnerDeck;
+
+    if (player1Value > player2Value && player1Value > player3Value) {
+        winnerDeck = player1Deck;
+        console.log("Player 1 wins the round!");
+    } else if (player2Value > player1Value && player2Value > player3Value) {
+        winnerDeck = player2Deck;
+        console.log("Player 2 wins the round!");
+    } else if (player3Value > player1Value && player3Value > player2Value) {
+        winnerDeck = player3Deck;
+        console.log("Player 3 wins the round!");
+    } else {
+        // tie logic should be implemented
+        console.log("It's a tie!"); // placeholder
+        return;
+    }
+
+    // adds the drawn cards back to the winner's deck
+    winnerDeck.push(player1CurrentCard, player2CurrentCard, player3CurrentCard);
+}
+
+// main function to play one round
+function playRound() {
+    placeCardsInCenter();
+    determineRoundWinner();
+
+    // remove the cards from the center after the round
+    setTimeout(() => {
+        scene.remove(player1CurrentCard.cardMesh);
+        scene.remove(player2CurrentCard.cardMesh);
+        scene.remove(player3CurrentCard.cardMesh);
+
+    }, 2000);  // Delay to visualize the cards in the center before removing
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         shuffleDeck(deck);
 
         const player1Deck = deck.slice(0, deck.length / 3);
         const player2Deck = deck.slice(deck.length / 3, (2 * deck.length) / 3);
         const player3Deck = deck.slice((2 * deck.length) / 3);
+
+
 
         function createPlayerDeck(deck, xOffset, yOffset, zOffset, zRotation) {
             let currentYOffset = yOffset;
@@ -124,6 +251,7 @@
         createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  
         createPlayerDeck(player2Deck, 0, 1, 30, 0);    
         createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);   
+        
 
         const tableGeom = new THREE.BoxGeometry(125, 125, 2);
         const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
@@ -207,6 +335,12 @@
             if (event.key === 'o') {
                 controls.enabled = !controls.enabled;
             }
+
+            // temp listener to test game logic by starting round
+            if (event.key === 'r') {
+                playRound();
+            }
+
         });
 
         selectedObject = null;
