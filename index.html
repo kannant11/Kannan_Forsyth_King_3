@@ -3,376 +3,552 @@
 <head>
     <title>Game Of War</title>
 </head>
-<body>
-    <canvas id="myCanvas" width="1200" height="800"></canvas>
+    <body>
+        <canvas id="myCanvas" width="1200" height="800"></canvas>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+        <script type="module">
+            import * as THREE from 'three';
+            import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('myCanvas') });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;  
-        document.body.appendChild(renderer.domElement);
+            // --- CONSTANTS ----
+            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king','ace'];
+            const cardRankings = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,  'jack': 11, 'queen': 12, 'king': 13, 'ace': 14};
+            const suits = ['spades', 'clubs', 'hearts', 'diamonds'];
+            const playerDeckPositions = {
+                player1: {x: -50, y: 1, z:-30},
+                player2: {x: 0, y: 1, z: 30},
+                player3: {x: 50, y: 1, z: -30}
+            };
 
-        camera.position.set(0, 75, 50);
-        camera.lookAt(0, 0, 0);
+            // game states - controls entire flow of initialization and gameplay from start to end
+            const GameState = {
+                GAME_START: 'gameStart', // gameStart -> round in progress
+                ROUND_IN_PROGRESS: 'roundInProgress', // round in progress -> round end
+                ROUND_END: 'roundEnd', // round end -> new round || gameover.
+                GAME_OVER: 'gameOver' // game over if one player has all the cards
+            };
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enabled = false;
+            // central play area position
+            const centerPositions = [
+            { x: -15, y: 1, z: 0 },  // p1 card display position
+            { x: 0, y: 1, z: 0 },    // p2 card display position
+            { x: 15, y: 1, z: 0 }    // p3 card display position
+            ];
 
-        const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
-        const backTexture = new THREE.TextureLoader().load('textures/back.png');
+            // --- SCENE / CAMERA SETUP ---
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('myCanvas') });
+            document.body.appendChild(renderer.domElement);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;  
+            camera.position.set(0, 75, 50);
+            camera.lookAt(0, 0, 0);
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enabled = false;
 
-        // puts values as strings, easy for iteration
-        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king','ace'];
 
+            // --- TEXTURE LOADING ----
+            const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
+            const backTexture = new THREE.TextureLoader().load('textures/back.png');
 
-        // assigns values to string counterparts, easy for comparing
-        // cardRankings[card.value] will return the corresponding number
-        const cardRankings = {
-            '2': 2,
-            '3': 3,
-            '4': 4,
-            '5': 5,
-            '6': 6,
-            '7': 7,
-            '8': 8,
-            '9': 9,
-            '10': 10,
-            'jack': 11,
-            'queen': 12,
-            'king': 13,
-            'ace': 14
-        };
-
-        const suits = ['spades', 'clubs', 'hearts', 'diamonds'];
-
-        const jokerTextures = {
-            red_joker: 'textures/PNG-cards-1.3/red_joker.png',
-            black_joker: 'textures/PNG-cards-1.3/black_joker.png'
-        };
-
-        const cardTextures = {};
-        values.forEach(value => {
-            suits.forEach(suit => {
-                const textureKey = `${value}_of_${suit}`;
-                cardTextures[textureKey] = `textures/PNG-cards-1.3/${textureKey.toLowerCase()}.png`;
+            const jokerTextures = {
+                red_joker: 'textures/PNG-cards-1.3/red_joker.png',
+                black_joker: 'textures/PNG-cards-1.3/black_joker.png'
+            };
+            const cardTextures = {};
+            values.forEach(value => {
+                suits.forEach(suit => {
+                    const textureKey = `${value}_of_${suit}`;
+                    cardTextures[textureKey] = `textures/PNG-cards-1.3/${textureKey.toLowerCase()}.png`;
+                });
             });
-        });
+            cardTextures['red_joker'] = jokerTextures.red_joker;
+            cardTextures['black_joker'] = jokerTextures.black_joker;
 
-        cardTextures['red_joker'] = jokerTextures.red_joker;
-        cardTextures['black_joker'] = jokerTextures.black_joker;
-
-        // variables to track the top card for each player
-        let player1CurrentCard, player2CurrentCard, player3CurrentCard;
-
-
-        // central play area position
-        const centerPositions = [
-        { x: -15, y: 1, z: 0 },  // p1 card display position
-        { x: 0, y: 1, z: 0 },    // p2 card display position
-        { x: 15, y: 1, z: 0 }    // p3 card display position
-        ];
-        
+            // --- GAME VARIABLES ---
+            let player1Deck, player2Deck, player3Deck
+            let player1CurrentCard, player2CurrentCard, player3CurrentCard;
+            let currentState = GameState.GAME_START; 
+            let cardPool = [] // pool of cards to be won
+            let winnerDeck; // denotes the deck of the round winner
+            let winnerDeckPosition; // denotes position of winning deck
 
 
-        class Card {
-            constructor(value, suit, frontTexture) {
-                this.value = value;
-                this.suit = suit;
-                this.frontTexture = frontTexture;
+            // --- CLASSES ---
 
-                this.width = 5;
-                this.height = 10;
-                this.depth = 0.05;
+            // card class and constructor (geometry)
+            class Card {
+                constructor(value, suit, frontTexture) {
 
-                this.cardGeom = new THREE.BoxGeometry(this.width, this.height, this.depth);
-                this.frontMat = new THREE.MeshPhongMaterial({ map: new THREE.TextureLoader().load(frontTexture) });
-                this.backMat = new THREE.MeshPhongMaterial({ map: backTexture });
+                    this.value = value;
+                    this.suit = suit;
+                    this.frontTexture = frontTexture;
 
-                this.cardMesh = new THREE.Group();
+                    this.width = 5;
+                    this.height = 10;
+                    this.depth = 0.05;
 
-                const front = new THREE.Mesh(this.cardGeom, this.frontMat);
-                front.position.set(0, 0, this.depth / 2);
-                front.castShadow = true;
-                front.receiveShadow = true;
+                    this.cardGeom = new THREE.BoxGeometry(this.width, this.height, this.depth);
+                    this.frontMat = new THREE.MeshPhongMaterial({ map: new THREE.TextureLoader().load(frontTexture) });
+                    this.backMat = new THREE.MeshPhongMaterial({ map: backTexture });
 
-                const back = new THREE.Mesh(this.cardGeom, this.backMat);
-                back.position.set(0, 0, -this.depth / 2);
-                back.castShadow = true;
-                back.receiveShadow = true;
+                    this.cardMesh = new THREE.Group();
 
-                this.cardMesh.add(front);
-                this.cardMesh.add(back);
+                    const front = new THREE.Mesh(this.cardGeom, this.frontMat);
+                    front.position.set(0, 0, this.depth / 2);
+                    front.castShadow = true;
+                    front.receiveShadow = true;
 
-                this.cardMesh.rotation.x = Math.PI / 2;  
-                this.cardMesh.rotation.y = 0;
-                this.cardMesh.rotation.z = 0;
-            }
+                    const back = new THREE.Mesh(this.cardGeom, this.backMat);
+                    back.position.set(0, 0, -this.depth / 2);
+                    back.castShadow = true;
+                    back.receiveShadow = true;
 
-            position(x, y, z) {
-                this.cardMesh.position.set(x, y, z);
-            }
-        }
+                    this.cardMesh.add(front);
+                    this.cardMesh.add(back);
 
-        const deck = [];
-        for (let suit of suits) {
-            for (let value of values) {
-                const textureKey = `${value}_of_${suit}`;
-                const frontTexture = cardTextures[textureKey];
-                if (frontTexture) {
-                    deck.push(new Card(value, suit, frontTexture));
+                    this.cardMesh.rotation.x = Math.PI / 2;  
+                    this.cardMesh.rotation.y = 0;
+                    this.cardMesh.rotation.z = 0;
+                }
+
+                // xyz positioning used during initialization
+                position(x, y, z) {
+                    this.cardMesh.position.set(x, y, z);
                 }
             }
-        }
-
-        deck.push(new Card('black_joker', null, cardTextures['black_joker']));
-        deck.push(new Card('red_joker', null, cardTextures['red_joker']));
-
-        function shuffleDeck(deck) {
-            for (let i = deck.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [deck[i], deck[j]] = [deck[j], deck[i]]; 
-            }
-        }
-
-        // function to draw the top card of each player's deck
-        function drawTopCard(deck) {
-            return deck.shift();  // Removes and returns the top card from the player's deck
-        }
 
 
-        // function to place cards in the center play area
-        function placeCardsInCenter() {
-            // Draw top cards
-            player1CurrentCard = drawTopCard(player1Deck);
-            player2CurrentCard = drawTopCard(player2Deck);
-            player3CurrentCard = drawTopCard(player3Deck);
+            // manager to handle game flow
+            class GameStateManager {
 
-            // Place each player's drawn card at the center positions
-            player1CurrentCard.position(centerPositions[0].x, centerPositions[0].y, centerPositions[0].z);
-            scene.add(player1CurrentCard.cardMesh);
-    
-            player2CurrentCard.position(centerPositions[1].x, centerPositions[1].y, centerPositions[1].z);
-            scene.add(player2CurrentCard.cardMesh);
-    
-            player3CurrentCard.position(centerPositions[2].x, centerPositions[2].y, centerPositions[2].z);
-            scene.add(player3CurrentCard.cardMesh);
-        }
+                constructor() {
+                    this.currentState = 'GAME_START';  // sets initial state to GAME_START
+                    console.log("Initial state set to: ", this.currentState);
+                    console.log("program started, run initializeGame()");
+                    this.initializeGame();
+                }
 
-        // Function to compare card values and determine the round winner
-        function getCardValue(card) {
-            const valuesOrder = { ace: 14, king: 13, queen: 12, jack: 11 };
-            return valuesOrder[card.value] || card.value;
-        }
+                // method to transition to a new state
+                setState(newState) {
+                    this.currentState = newState;
+                    console.log(`Game state changed to: ${newState}`);
+                }
 
-function determineRoundWinner() {
-    const player1Value = getCardValue(player1CurrentCard);
-    const player2Value = getCardValue(player2CurrentCard);
-    const player3Value = getCardValue(player3CurrentCard);
+                // gets the current game state
+                getState() {
+                    console.log(' * checking game state..')
+                    return this.currentState;
+                }
 
-    let winnerDeck;
+                // initialize game elements (table, deck, player pos)
+                initializeGame() {
 
-    if (player1Value > player2Value && player1Value > player3Value) {
-        winnerDeck = player1Deck;
-        console.log("Player 1 wins the round!");
-    } else if (player2Value > player1Value && player2Value > player3Value) {
-        winnerDeck = player2Deck;
-        console.log("Player 2 wins the round!");
-    } else if (player3Value > player1Value && player3Value > player2Value) {
-        winnerDeck = player3Deck;
-        console.log("Player 3 wins the round!");
-    } else {
-        // tie logic should be implemented
-        console.log("It's a tie!"); // placeholder
-        return;
-    }
+                    // table geometry and visual appearance
+                    const tableGeom = new THREE.BoxGeometry(125, 125, 2);
+                    const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
+                    const table = new THREE.Mesh(tableGeom, tableMat);
+                    table.rotation.x = -Math.PI / 2; 
+                    table.position.set(0, 0, -20); 
+                    table.castShadow = true;  
+                    table.receiveShadow = true;
+                    scene.add(table);
 
-    // adds the drawn cards back to the winner's deck
-    winnerDeck.push(player1CurrentCard, player2CurrentCard, player3CurrentCard);
-}
+                    // ambient lighting
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+                    scene.add(ambientLight);
 
-// main function to play one round
-function playRound() {
-    placeCardsInCenter();
-    determineRoundWinner();
+                    // point lighting
+                    const pointLight = new THREE.PointLight(0xd05a1a, 6000, 100);
+                    pointLight.position.set(0, 45, -20);
+                    pointLight.castShadow = true;
+                    scene.add(pointLight);
 
-    // remove the cards from the center after the round
-    setTimeout(() => {
-        scene.remove(player1CurrentCard.cardMesh);
-        scene.remove(player2CurrentCard.cardMesh);
-        scene.remove(player3CurrentCard.cardMesh);
-
-    }, 2000);  // Delay to visualize the cards in the center before removing
-}
+                    const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
+                    scene.add( pointLightHelper);
+                    pointLightHelper.visible = false;
 
 
+                    let moveSpeed = 2;
+                    let shadowsEnabled = true; 
+
+                    
+                    // initialize and shuffle deck
+                    console.log('- initializeDeck()')
+                    let deck = initializeDeck();
+
+                    console.log('- shuffleDeck()')
+                    shuffleDeck(deck);
+
+                    
+                    // disperse deck evenly between 3 players
+                    console.log('- dealCardsToPlayers()')
+                    dealCardsToPlayers(deck);
+
+                    
+                    // places each player's deck in their respective positions around the table
+                    console.log('- createPlayerDeck() ')
+                    createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  // player 1 position
+                    createPlayerDeck(player2Deck, 0, 1, 30, 0);               // player 2 position
+                    createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);  // player 3 position
+
+                    console.log('initializeGame() done')
+                }
 
 
+                // transition to the ROUND_IN_PROGRESS state and initiate a new round
+                transitionToRoundInProgress() {
+                    console.log("transitioning to round in progress...");
+                    this.setState('ROUND_IN_PROGRESS');
+                    
+                    console.log('startRound()')
+                    startRound();  // Starts a new round by dealing cards and placing them on the table
+                }
 
+                // transition to the ROUND_END state, check if the game should end or continue to a new round
+                transitionToRoundEnd() {
+                    this.setState('ROUND_END');
+                    console.log("round ended. checking for game over...");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        shuffleDeck(deck);
-
-        const player1Deck = deck.slice(0, deck.length / 3);
-        const player2Deck = deck.slice(deck.length / 3, (2 * deck.length) / 3);
-        const player3Deck = deck.slice((2 * deck.length) / 3);
-
-
-
-        function createPlayerDeck(deck, xOffset, yOffset, zOffset, zRotation) {
-            let currentYOffset = yOffset;
-            deck.forEach((card, index) => {
-                card.position(xOffset, currentYOffset, zOffset);
-                card.cardMesh.rotation.z = zRotation;
-                scene.add(card.cardMesh);
-                currentYOffset += 0.2; 
-            });
-        }
-
-        createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  
-        createPlayerDeck(player2Deck, 0, 1, 30, 0);    
-        createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);   
-        
-
-        const tableGeom = new THREE.BoxGeometry(125, 125, 2);
-        const tableMat = new THREE.MeshPhongMaterial({ map: tableTexture });
-        const table = new THREE.Mesh(tableGeom, tableMat);
-        table.rotation.x = -Math.PI / 2; 
-        table.position.set(0, 0, -20); 
-        table.castShadow = true;  
-        table.receiveShadow = true;
-        scene.add(table);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
-        scene.add(ambientLight);
-
-        const pointLight = new THREE.PointLight(0xd05a1a, 6000, 100);
-        pointLight.position.set(0, 45, -20);
-        pointLight.castShadow = true;
-        scene.add(pointLight);
-
-        const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
-        scene.add( pointLightHelper);
-        pointLightHelper.visible = false;
-
-        let moveSpeed = 2;
-        let shadowsEnabled = true;  
-
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'n') {
-                scene.remove(player1Deck);
-                scene.remove(player2Deck);
-                scene.remove(player3Deck);
-                createPlayerDeck(player1Deck, -50, 1, -30, Math.PI / 2);  
-                createPlayerDeck(player2Deck, 0, 1, 30, 0);    
-                createPlayerDeck(player3Deck, 50, 1, -30, -Math.PI / 2);
-                shuffleDeck(player1Deck);
-                shuffleDeck(player2Deck);
-                shuffleDeck(player3Deck);
-                scene.add(player1Deck);
-                scene.add(player2Deck);
-                scene.add(player3Deck);
-            }
-            if (event.key === 'l') {
-                ambientLight.visible = !ambientLight.visible;
-            }
-            if (event.key === 'p') {
-                pointLight.visible = !pointLight.visible;
-            }
-            if (event.key === 'w') {
-                pointLight.position.z -= moveSpeed; 
-            }
-            if (event.key === 's') {
-                pointLight.position.z += moveSpeed; 
-            }
-            if (event.key === 'a') {
-                pointLight.position.x -= moveSpeed; 
-            }
-            if (event.key === 'd') {
-                pointLight.position.x += moveSpeed; 
-            }
-            if (event.key === 'q') {
-                pointLight.position.y += moveSpeed; 
-            }
-            if (event.key === 'e') {
-                pointLight.position.y -= moveSpeed; 
-            }
-            if (event.key === 'm') {
-                shadowsEnabled = !shadowsEnabled;
-
-                renderer.shadowMap.enabled = shadowsEnabled;
-                pointLight.castShadow = shadowsEnabled;  
-
-                scene.traverse(child => {
-                    if (child instanceof THREE.Mesh) {
-                        child.castShadow = shadowsEnabled;
-                        child.receiveShadow = shadowsEnabled;
+                    if (checkGameOverConditions()) {
+                        this.transitionToGameOver();
+                    } else {
+                        // delay transitioning to the next round to allow for animations, updates, etc.
+                        setTimeout(() => {
+                            //this.transitionToRoundInProgress();
+                        }, 2000); 
                     }
+                }
+
+                // transition to the GAME_OVER state and display final results
+                transitionToGameOver() {
+                    this.setState('GAME_OVER');
+                    console.log("game over. ");
+                    showFinalResults();  // display results or announce winner
+                }
+            }   
+
+
+            // --- FUNCTIONS ---
+
+            // initialize the deck for game setup
+            function initializeDeck() {
+                const deck = [];
+                for (let suit of suits) {
+                    for (let value of values) {
+                        const textureKey = `${value}_of_${suit}`;
+                        const frontTexture = cardTextures[textureKey];
+                        if (frontTexture) {
+                            deck.push(new Card(value, suit, frontTexture));
+                        }
+                    }   
+                }
+                deck.push(new Card('black_joker', null, cardTextures['black_joker']));
+                deck.push(new Card('red_joker', null, cardTextures['red_joker']));
+                return deck;
+            }
+
+            // shuffle the deck by permuting it with random swaps
+            function shuffleDeck(deck) {
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]]; 
+                }
+            }
+
+            
+            // ChatGPT 4.0 Sourced Animation Functions
+            // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+            // Linear interpolation function to smoothly transition from one position to another 
+            function lerp(start, end, alpha) {
+                return start + (end - start) * alpha;
+            }
+
+            // move a single card smoothly to target
+            // @cardMesh - object to be moved
+            // @targetPosition - where the card should be moved
+            // @duration - time (seconds) for the animation to complete
+            function moveCard(cardMesh, targetPosition, duration) {
+                const initialPosition = {
+                    x: cardMesh.position.x,
+                    y: cardMesh.position.y,
+                    z: cardMesh.position.z
+                };
+                const startTime = performance.now();
+
+                function animate() {
+                    const elasped = (performance.now() - startTime) / 1000; // milliseconds
+                    const progress = Math.min(elasped / duration, 1);
+
+                    // interpolate between initial and target position (t-value increments from 0.0 to 1.0
+                    cardMesh.position.x = lerp(initialPosition.x, targetPosition.x, progress);
+                    cardMesh.position.y = lerp(initialPosition.y, targetPosition.y, progress);
+                    cardMesh.position.z = lerp(initialPosition.z, targetPosition.z, progress);
+
+                    if (progress >= 0.5 && cardMesh.rotation.y === 0) {
+                        rotateCard(cardMesh, 'y', Math.PI, duration / 2) // Flip cards 180 degrees on the Y-axis
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                }
+
+                animate();
+            }
+            
+            // Function that uses moveCard() and a delay to translate and animate a group of cards in an appealing fashion
+            function animateCardsToPosition(cards, targetPosition, duration = 1, delay = 0.1) {
+                cards.forEach((card, index) => {
+                    const targetPosWithOffset = {
+                        x: targetPosition.x, 
+                        y: targetPosition.y + index * 0.2, // slight offset for stacking cards
+                        z: targetPosition.z
+                    };
+
+                    // timeout gives staggered effect when moving multiple cards
+                    setTimeout(() => {
+                        moveCard(card.cardMesh, targetPosWithOffset, duration);
+                    }, index * delay * 1000)
                 });
             }
-            if (event.key === 'u') {
-                pointLightHelper.visible = !pointLightHelper.visible; 
+
+
+            // Rotate a card smoothly on a specified axis
+            function rotateCard(cardMesh, axis, angle, duration) {
+                const initialRotation = cardMesh.rotation[axis];
+                const targetRotation = initialRotation + angle;
+                const startTime = performance.now();
+
+                function rotate() {
+                    const elapsed = (performance.now() - startTime) / 1000;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    cardMesh.rotation[axis] = lerp(initialRotation, targetRotation, progress);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(rotate);
+                    }
+                }
+
+                rotate();
             }
-            if (event.key === 'o') {
-                controls.enabled = !controls.enabled;
+            // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* end chatGPT
+
+
+            
+            // deal each player their own deck of cards from the original deck
+            function dealCardsToPlayers(deck) {
+
+                // each players deck is 1/3 of the original deck
+                player1Deck = deck.slice(0, deck.length / 3);
+                player2Deck = deck.slice(deck.length / 3, (2 * deck.length) / 3);
+                player3Deck = deck.slice((2 * deck.length) / 3);
             }
 
-            // temp listener to test game logic by starting round
-            if (event.key === 'r') {
-                playRound();
+            // function to draw the top card of a given deck, simulates player drawing top card
+            function drawTopCard(deck) {
+                const drawnCard = deck.shift(); // removes and returns top card 
+                cardPool.push(drawnCard); // adds the drawn card to the pool of cards to be won
+                return drawnCard; 
             }
 
-        });
+            // function to draw each players card and animate it to the center
+            function placeCardsInCenter() {
+                
+                // draw top cards
+                player1CurrentCard = drawTopCard(player1Deck);
+                player2CurrentCard = drawTopCard(player2Deck);
+                player3CurrentCard = drawTopCard(player3Deck);
 
-        let selectedObject = null;
-        var positionX;
-        var positionY;
-        let isDraggin = false;
-
-        document.addEventListener('mousedown', function(event) {
-            isDraggin = true;
-            positionX = event.clientX - selectedObject.xOffset;
-            positionY = event.clientY - selectedObject.yOffset;
-        });
-
-        document.addEventListener('mousemove', function(event) {
-            if(isDraggin = true) {
-                selectedObject.style.left = event.clientX - positionX;
-                selectedObject.style.top = event.clientY - positionY;
+                // move cards to center with animation
+                moveCard(player1CurrentCard.cardMesh, centerPositions[0], 1);
+                moveCard(player2CurrentCard.cardMesh, centerPositions[1], 1);
+                moveCard(player3CurrentCard.cardMesh, centerPositions[2], 1);
             }
-        });
 
-        document.addEventListener('mouseup', function(event) {
-            isDraggin = false;
-            selectedObject = null;
-        });
+            // function to get value of card that is either a face value or numerical
+            function getCardValue(card) {
+                const valuesOrder = { ace: 14, king: 13, queen: 12, jack: 11 };
+                return valuesOrder[card.value] || card.value;
+            }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update(); 
-            renderer.render(scene, camera);
-        }
+            // function to start a new round of 3 cards to be drawn when the game state
+            // shifts from either gameStart to roundInProgress, or from roundEnd back to roundInProgress
+            function startRound() {
 
-        animate();
-    </script>
-</body>
+                // Clear the card pool to prepare for a new round
+                cardPool = []
+
+                // pull card from top of each deck, place in center
+                placeCardsInCenter();
+
+                // determine the winning player, after animation delay
+                setTimeout(() => {
+                    determineRoundWinner();
+                }, 1000);
+            }   
+
+            
+            // functions to compare card values and determine the round winner
+            function determineRoundWinner() {
+                
+                // numerical values of each players' drawn card
+                const player1Value = getCardValue(player1CurrentCard);
+                const player2Value = getCardValue(player2CurrentCard);
+                const player3Value = getCardValue(player3CurrentCard);
+
+                // if player 1 wins
+                if (player1Value > player2Value && player1Value > player3Value) {
+                    
+                    winnerDeck = player1Deck; // winner deck references player 1 deck
+                    winnerDeckPosition = playerDeckPositions.player1;
+                    console.log("player 1 wins");
+
+        
+                // if player 2 wins
+                } else if (player2Value > player1Value && player2Value > player3Value) {
+
+                    winnerDeck = player2Deck // winner deck references player 2 deck
+                    winnerDeckPosition = playerDeckPositions.player2;
+                    console.log("player 2 wins");
+
+            
+                // if player 3 wins
+                } else if (player3Value > player1Value && player3Value > player2Value) {
+                
+                    winnerDeck = player3Deck; // winner deck references player 3 deck
+                    winnerDeckPosition = playerDeckPositions.player3;
+                    console.log("player 3 wins ");
+
+                // if there is a tie present
+                } else {
+                    // tie logic should be implemented
+                    console.log("It's a tie!"); // placeholder
+                    return;
+                }
+
+                // add the card pool to the bottom of the winner's deck (this needs to be treated as the individual cards)
+                // ChatGPT helped me fix this problem and taught me a new idea
+                // spread operator - ... - treats every element of the array as a separate argument, perfect for our cards 
+                winnerDeck.push(...cardPool)
+
+                // animate cards to the bottom of the winner's deck position
+                animateCardsToPosition(cardPool, winnerDeckPosition);
+                
+                // transition to round end after animation completes
+                setTimeout(() => {
+
+                    // clear the card pool for next round
+                    cardPool = [];
+
+                    player1CurrentCard = null;
+                    player2CurrentCard = null;
+                    player3CurrentCard = null;
+
+                    gameStateManager.transitionToRoundEnd;
+                }, 5000); // adjust if needed
+            }
+
+            function checkGameOverConditions() {
+
+                return player1Deck.length === 0 || player2Deck.length === 0 || player3Deck.length === 0;
+            }
+
+
+            // function to create a player's deck visually
+            function createPlayerDeck(deck, xOffset, yOffset, zOffset, zRotation) {
+                let currentYOffset = yOffset;
+                deck.forEach((card, index) => {
+                    card.position(xOffset, currentYOffset, zOffset);
+                    card.cardMesh.rotation.z = zRotation;
+                    scene.add(card.cardMesh);
+                    currentYOffset += 0.2; 
+                });
+            }
+
+            function showFinalResults() {
+                
+                // displays player with winning deck
+                const playerDecks = [player1Deck, player2Deck, player3Deck];
+                let maxCards = Math.max(...playerDecks.map(deck => deck.length));
+                let winner = playerDecks.findIndex(deck => deck.length === maxCards);
+                console.log(`Player ${winner + 1} wins the game!`);
+            }   
+
+
+            // Keydown listener 
+            window.addEventListener('keydown', (event) => {
+
+                console.log("---------------------------------------------------")
+                console.log(`Key pressed: ${event.key}`);
+
+                switch (event.key) {
+                    case 'n': // Start a new round when 'n' is pressed
+                
+                        console.log("current state:", gameStateManager.currentState);
+                        
+                            console.log("conditions met, gameStateManager.transitionToRoundInProgress()")
+                            gameStateManager.transitionToRoundInProgress();
+                    
+                        break;
+                    case 'l':
+                        ambientLight.visible = !ambientLight.visible;
+                        break;
+                    case 'p':
+                        pointLight.visible = !pointLight.visible;
+                        break;
+                    case 'w':
+                        pointLight.position.z -= moveSpeed;
+                        break;
+                    case 's':
+                        pointLight.position.z += moveSpeed;
+                        break;
+                    case 'a':
+                        pointLight.position.x -= moveSpeed;
+                        break;
+                    case 'd':
+                        pointLight.position.x += moveSpeed;
+                        break;
+                    case 'q':
+                        pointLight.position.y += moveSpeed;
+                        break;
+                    case 'e':
+                        pointLight.position.y -= moveSpeed;
+                        break;
+                    case 'm':
+                        shadowsEnabled = !shadowsEnabled;
+                        renderer.shadowMap.enabled = shadowsEnabled;
+                        pointLight.castShadow = shadowsEnabled;
+                        scene.traverse(child => {
+                            if (child instanceof THREE.Mesh) {
+                                child.castShadow = shadowsEnabled;
+                                child.receiveShadow = shadowsEnabled;
+                            }
+                        });
+                        break;
+                    case 'u':
+                        pointLightHelper.visible = !pointLightHelper.visible;
+                        break;
+                    case 'o':
+                        controls.enabled = !controls.enabled;
+                        break;
+                }
+            });
+
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update(); 
+                renderer.render(scene, camera);
+            }
+            animate();
+
+
+            const gameStateManager = new GameStateManager();
+            
+        </script>
+    </body>
 </html>
