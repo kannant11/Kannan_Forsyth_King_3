@@ -71,6 +71,7 @@
             let player1CurrentCard, player2CurrentCard, player3CurrentCard;
             let currentState = GameState.GAME_START; 
             let cardPool = [] // pool of cards to be won
+            let winnerCard // winning card of the round
             let winnerDeck; // denotes the deck of the round winner
             let winnerDeckPosition; // denotes position of winning deck
 
@@ -199,11 +200,22 @@
 
                 // transition to the ROUND_IN_PROGRESS state and initiate a new round
                 transitionToRoundInProgress() {
+
+                    console.log("current state:", gameStateManager.currentState);
+
+                    // check if a round is already in progress
+                    if (this.currentState === GameState.ROUND_IN_PROGRESS) {
+                        console.log("Round already in progress, ignoring transition...")
+                        return; // exit if a round is already happening
+                    }
+
                     console.log("transitioning to round in progress...");
-                    this.setState('ROUND_IN_PROGRESS');
+                    this.setState(GameState.ROUND_IN_PROGRESS);
+                    console.log("set round in progress before starting the round with startRound() ")
                     
                     console.log('startRound()')
                     startRound();  // Starts a new round by dealing cards and placing them on the table
+
                 }
 
                 // transition to the ROUND_END state, check if the game should end or continue to a new round
@@ -350,7 +362,7 @@
 
             // function to draw the top card of a given deck, simulates player drawing top card
             function drawTopCard(deck) {
-                const drawnCard = deck.shift(); // removes and returns top card 
+                const drawnCard = deck.pop(); // removes and returns top card 
                 cardPool.push(drawnCard); // adds the drawn card to the pool of cards to be won
                 return drawnCard; 
             }
@@ -388,7 +400,7 @@
                 // determine the winning player, after animation delay
                 setTimeout(() => {
                     determineRoundWinner();
-                }, 1000);
+                }, 3000);
             }   
 
             
@@ -403,6 +415,7 @@
                 // if player 1 wins
                 if (player1Value > player2Value && player1Value > player3Value) {
                     
+                    winnerCard = player1CurrentCard
                     winnerDeck = player1Deck; // winner deck references player 1 deck
                     winnerDeckPosition = playerDeckPositions.player1;
                     console.log("player 1 wins");
@@ -411,6 +424,7 @@
                 // if player 2 wins
                 } else if (player2Value > player1Value && player2Value > player3Value) {
 
+                    winnerCard = player2CurrentCard
                     winnerDeck = player2Deck // winner deck references player 2 deck
                     winnerDeckPosition = playerDeckPositions.player2;
                     console.log("player 2 wins");
@@ -419,6 +433,7 @@
                 // if player 3 wins
                 } else if (player3Value > player1Value && player3Value > player2Value) {
                 
+                    winnerCard = player3CurrentCard
                     winnerDeck = player3Deck; // winner deck references player 3 deck
                     winnerDeckPosition = playerDeckPositions.player3;
                     console.log("player 3 wins ");
@@ -429,6 +444,9 @@
                     console.log("It's a tie!"); // placeholder
                     return;
                 }
+
+
+
 
                 // add the card pool to the bottom of the winner's deck (this needs to be treated as the individual cards)
                 // ChatGPT helped me fix this problem and taught me a new idea
@@ -487,11 +505,11 @@
 
                 switch (event.key) {
                     case 'n': // Start a new round when 'n' is pressed
-                
+
+                        console.log("n pressed, attempting to start new round")
                         console.log("current state:", gameStateManager.currentState);
                         
-                            console.log("conditions met, gameStateManager.transitionToRoundInProgress()")
-                            gameStateManager.transitionToRoundInProgress();
+                        gameStateManager.transitionToRoundInProgress();
                     
                         break;
                     case 'l':
