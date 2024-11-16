@@ -220,7 +220,7 @@
 
                 // transition to the ROUND_END state, check if the game should end or continue to a new round
                 transitionToRoundEnd() {
-                    this.setState('ROUND_END');
+                    this.setState(GameState.ROUND_END);
                     console.log("round ended. checking for game over...");
 
                     if (checkGameOverConditions()) {
@@ -282,26 +282,41 @@
             // @cardMesh - object to be moved
             // @targetPosition - where the card should be moved
             // @duration - time (seconds) for the animation to complete
-            function moveCard(cardMesh, targetPosition, duration) {
+            function moveCard(cardMesh, targetPosition, zRotation, duration, faceUp = true) {
                 const initialPosition = {
                     x: cardMesh.position.x,
                     y: cardMesh.position.y,
                     z: cardMesh.position.z
                 };
+
+                const initialZRotation = cardMesh.rotation.z;
+
                 const startTime = performance.now();
 
+                let targetRotationY
+
+                if(faceUp) {
+                    targetRotationY = Math.PI; // rotate 180 degrees for faceup appearance
+                } else {
+                    targetRotationY = 0; // keep at 0 degrees for facedown
+                }
+
                 function animate() {
-                    const elasped = (performance.now() - startTime) / 1000; // milliseconds
-                    const progress = Math.min(elasped / duration, 1);
+                    const elapsed = (performance.now() - startTime) / 1000; // milliseconds
+                    const progress = Math.min(elapsed / duration, 1);
 
                     // interpolate between initial and target position (t-value increments from 0.0 to 1.0
                     cardMesh.position.x = lerp(initialPosition.x, targetPosition.x, progress);
                     cardMesh.position.y = lerp(initialPosition.y, targetPosition.y, progress);
                     cardMesh.position.z = lerp(initialPosition.z, targetPosition.z, progress);
 
-                    if (progress >= 0.5 && cardMesh.rotation.y === 0) {
-                        rotateCard(cardMesh, 'y', Math.PI, duration / 2) // Flip cards 180 degrees on the Y-axis
+
+                    // handle card rotation for faceup/ facedown
+                    if (Math.abs(cardMesh.rotation.y - targetRotationY) > 0.01) {
+                        cardMesh.rotation.y = lerp(cardMesh.rotation.y, targetRotationY, progress);
                     }
+
+                    cardMesh.rotation.z = lerp(initialZRotation, zRotation, progress);
 
                     if (progress < 1) {
                         requestAnimationFrame(animate);
@@ -312,7 +327,7 @@
             }
             
             // Function that uses moveCard() and a delay to translate and animate a group of cards in an appealing fashion
-            function animateCardsToPosition(cards, targetPosition, duration = 1, delay = 0.1) {
+            function animateCardsToPosition(cards, targetPosition, zRotation = 0, duration = 1, delay = 0.1, faceUp = true) {
                 cards.forEach((card, index) => {
                     const targetPosWithOffset = {
                         x: targetPosition.x, 
@@ -322,7 +337,7 @@
 
                     // timeout gives staggered effect when moving multiple cards
                     setTimeout(() => {
-                        moveCard(card.cardMesh, targetPosWithOffset, duration);
+                        moveCard(card.cardMesh, targetPosWithOffset, zRotation, duration, faceUp);
                     }, index * delay * 1000)
                 });
             }
@@ -362,6 +377,10 @@
 
             // function to draw the top card of a given deck, simulates player drawing top card
             function drawTopCard(deck) {
+                if(deck.length === 0) {
+                    console.log("deck is empty, cannot draw a card.");
+                }
+
                 const drawnCard = deck.pop(); // removes and returns top card 
                 cardPool.push(drawnCard); // adds the drawn card to the pool of cards to be won
                 return drawnCard; 
@@ -375,10 +394,14 @@
                 player2CurrentCard = drawTopCard(player2Deck);
                 player3CurrentCard = drawTopCard(player3Deck);
 
+                console.log("Player 1 Card:", player1CurrentCard);
+                console.log("Player 2 Card:", player2CurrentCard);
+                console.log("Player 3 Card:", player3CurrentCard);
+
                 // move cards to center with animation
-                moveCard(player1CurrentCard.cardMesh, centerPositions[0], 1);
-                moveCard(player2CurrentCard.cardMesh, centerPositions[1], 1);
-                moveCard(player3CurrentCard.cardMesh, centerPositions[2], 1);
+                moveCard(player1CurrentCard.cardMesh, centerPositions[0], 0, 1, true);
+                moveCard(player2CurrentCard.cardMesh, centerPositions[1], 0, 1, true);
+                moveCard(player3CurrentCard.cardMesh, centerPositions[2], 0, 1, true);
             }
 
             // function to get value of card that is either a face value or numerical
@@ -401,6 +424,10 @@
                 setTimeout(() => {
                     determineRoundWinner();
                 }, 3000);
+
+                setTimeout(() => {
+                    gameStateManager.transitionToRoundEnd();
+                }, 3000);
             }   
 
             
@@ -412,12 +439,15 @@
                 const player2Value = getCardValue(player2CurrentCard);
                 const player3Value = getCardValue(player3CurrentCard);
 
+                let winnerDeckRotation; // orientation or 'direction' deck is facing
+
                 // if player 1 wins
                 if (player1Value > player2Value && player1Value > player3Value) {
                     
                     winnerCard = player1CurrentCard
                     winnerDeck = player1Deck; // winner deck references player 1 deck
                     winnerDeckPosition = playerDeckPositions.player1;
+                    winnerDeckRotation = Math.PI / 2; // player 1 deck orientiation upon creation
                     console.log("player 1 wins");
 
         
@@ -427,6 +457,7 @@
                     winnerCard = player2CurrentCard
                     winnerDeck = player2Deck // winner deck references player 2 deck
                     winnerDeckPosition = playerDeckPositions.player2;
+                    winnerDeckRotation = 0; // player 2 deck orientation upon creation
                     console.log("player 2 wins");
 
             
@@ -436,6 +467,7 @@
                     winnerCard = player3CurrentCard
                     winnerDeck = player3Deck; // winner deck references player 3 deck
                     winnerDeckPosition = playerDeckPositions.player3;
+                    winnerDeckRotation = -Math.PI / 2; // player 3 deck orientation
                     console.log("player 3 wins ");
 
                 // if there is a tie present
@@ -445,16 +477,13 @@
                     return;
                 }
 
-
-
-
-                // add the card pool to the bottom of the winner's deck (this needs to be treated as the individual cards)
+                // add the card pool to the bottom of the winner's deck (they need to be treated as the individual cards)
                 // ChatGPT helped me fix this problem and taught me a new idea
                 // spread operator - ... - treats every element of the array as a separate argument, perfect for our cards 
                 winnerDeck.push(...cardPool)
 
                 // animate cards to the bottom of the winner's deck position
-                animateCardsToPosition(cardPool, winnerDeckPosition);
+                animateCardsToPosition(cardPool, winnerDeckPosition, winnerDeckRotation, 1, 0.1, false); // faceup = false for facedown flip
                 
                 // transition to round end after animation completes
                 setTimeout(() => {
