@@ -47,6 +47,13 @@
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enabled = false;
 
+            let moveSpeed = 2;
+            let shadowsEnabled = true; 
+
+            let pointLight = new THREE.PointLight(0xd05a1a, 3500, 100);
+
+            let ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+
 
             // --- TEXTURE LOADING ----
             const tableTexture = new THREE.TextureLoader().load('textures/tabletop.jpg');
@@ -157,22 +164,19 @@
                     scene.add(table);
 
                     // ambient lighting
-                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
                     scene.add(ambientLight);
 
                     // point lighting
-                    const pointLight = new THREE.PointLight(0xd05a1a, 6000, 100);
                     pointLight.position.set(0, 45, -20);
                     pointLight.castShadow = true;
                     scene.add(pointLight);
 
-                    const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
-                    scene.add( pointLightHelper);
+                    let pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
+                    scene.add(pointLightHelper);
                     pointLightHelper.visible = false;
 
 
-                    let moveSpeed = 2;
-                    let shadowsEnabled = true; 
+                    
 
                     
                     // initialize and shuffle deck
@@ -550,11 +554,11 @@
                     case 'w':
                         pointLight.position.z -= moveSpeed;
                         break;
-                    case 's':
-                        pointLight.position.z += moveSpeed;
-                        break;
                     case 'a':
                         pointLight.position.x -= moveSpeed;
+                        break;
+                    case 's':
+                        pointLight.position.z += moveSpeed;
                         break;
                     case 'd':
                         pointLight.position.x += moveSpeed;
@@ -565,16 +569,16 @@
                     case 'e':
                         pointLight.position.y -= moveSpeed;
                         break;
-                    case 'm':
+                    case 'm': // toggle shadows
                         shadowsEnabled = !shadowsEnabled;
                         renderer.shadowMap.enabled = shadowsEnabled;
-                        pointLight.castShadow = shadowsEnabled;
                         scene.traverse(child => {
                             if (child instanceof THREE.Mesh) {
                                 child.castShadow = shadowsEnabled;
                                 child.receiveShadow = shadowsEnabled;
                             }
                         });
+                        console.log("shadows toggled")
                         break;
                     case 'u':
                         pointLightHelper.visible = !pointLightHelper.visible;
